@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎨 Pixel Forge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- خلفية Aurora المتحركة -->
+    <div class="aurora">
+        <div class="aurora-blob aurora-1"></div>
+        <div class="aurora-blob aurora-2"></div>
+        <div class="aurora-blob aurora-3"></div>
+    </div>
+    <div class="noise-overlay"></div>
+
+    <div class="app">
+        <!-- الهيدر -->
+        <header class="glass-header">
+            <div class="brand">
+                <div class="brand-icon">🎨</div>
+                <div class="brand-text">
+                    <h1>FORGE</h1>
+                    <span>AI IMAGE GEN</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="toggleSettings()" id="btnSettings"><i class="fas fa-sliders"></i></button>
+                <button class="icon-btn" onclick="clearAll()" title="مسح المعرض"><i class="fas fa-trash"></i></button>
+            </div>
+        </header>
+
+        <!-- معاينة الصورة -->
+        <section class="hero-preview glass-card" id="previewArea">
+            <div class="empty-forge" id="emptyState">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <p>اكتب وصفاً في الأسفل لتبدأ</p>
+            </div>
+            <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+                <div class="spinner"></div>
+                <p>جاري التوليد...</p>
+            </div>
+            <img class="generated-img" id="generatedImg" alt="">
+            <div class="img-overlay" id="imgOverlay" style="display:none;">
+                <button class="action-circle" onclick="downloadImage()"><i class="fas fa-download"></i></button>
+                <button class="action-circle" onclick="shareImage()"><i class="fas fa-share"></i></button>
+            </div>
+        </section>
+
+        <!-- حقل الإدخال -->
+        <section class="prompt-section glass-card">
+            <textarea id="promptInput" class="luxury-textarea" placeholder="اكتب وصف الصورة هنا... (مثال: قطة تشرب قهوة في الفضاء)" rows="3"></textarea>
+            
+            <div class="style-pills">
+                <button class="style-pill active" data-style="realistic" onclick="selectStyle(this)">📷 واقعي</button>
+                <button class="style-pill" data-style="anime" onclick="selectStyle(this)">🌸 أنمي</button>
+                <button class="style-pill" data-style="cinematic" onclick="selectStyle(this)">🎬 سينمائي</button>
+                <button class="style-pill" data-style="3d" onclick="selectStyle(this)">🧊 3D</button>
+            </div>
+
+            <div class="prompt-actions">
+                <select id="aspectRatio" class="luxury-select">
+                    <option value="1:1">مربع 1:1</option>
+                    <option value="16:9">عريض 16:9</option>
+                    <option value="9:16">طولي 9:16</option>
+                </select>
+                <button class="generate-btn" id="generateBtn" onclick="generateImage()">
+                    <i class="fas fa-bolt"></i> توليد
+                </button>
+            </div>
+        </section>
+
+        <!-- معرض الصور المولدة -->
+        <section class="gallery-section" id="gallerySection" style="display:none;">
+            <div class="section-title">
+                <h3><i class="fas fa-images"></i> معرضك</h3>
+                <span id="galleryCount">0 صورة</span>
+            </div>
+            <div class="image-gallery" id="imageGallery"></div>
+        </section>
+
+        <!-- لوحة الإعدادات -->
+        <div class="glass-modal" id="settingsPanel" style="display:none">
+            <div class="modal-header">
+                <h3><i class="fas fa-sliders"></i> الإعدادات</h3>
+                <button class="close-btn" onclick="toggleSettings()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <label>مفتاح Gemini API</label>
+                <input type="password" class="luxury-input" id="geminiKey" placeholder="AIza...">
+                
+                <label>الموديل (Model)</label>
+                <input type="text" class="luxury-input" id="geminiModel" placeholder="gemini-2.5-flash-image">
+                
+                <button class="luxury-btn primary full-width" onclick="saveSettings()">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="luxury-toast" id="toast"></div>
+
+    <script src="storage.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
