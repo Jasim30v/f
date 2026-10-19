@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 ╔══════════════════════════════════════════════════════════════╗
-║  🎨  PIXEL FORGE 2044 - AI IMAGE GENERATOR  🎨            ║
+║  🎨  PIXEL FORGE 2044 - ULTIMATE AI IMAGE GENERATOR  🎨   ║
 ║                                                            ║
 ║  🔑 Gemini API (Nano Banana)                               ║
-║  ✨ توليد صور من النص مباشرة                                ║
-║  💎 واجهة فخمة (Luxury Dark)                                ║
+║  ✨ توليد صور + معرض داخلي + أنماط فنية                     ║
+║  💎 تصميم فخم + خلفية Aurora متحركة                         ║
 ║                                                            ║
 ╚══════════════════════════════════════════════════════════════╝
 """
@@ -14,10 +14,7 @@ import os
 
 TOTAL_LINES = 0
 
-# ═══════════════════════════════════════════════════════════
-# 🔑 الإعدادات (يمكنك تغيير الموديل هنا)
-# ═══════════════════════════════════════════════════════════
-DEFAULT_MODEL = "gemini-2.5-flash-image"  # موديل Nano Banana
+DEFAULT_MODEL = "gemini-2.5-flash-image"
 
 def write(filename, content):
     global TOTAL_LINES
@@ -49,8 +46,12 @@ def build_index():
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="ambient-glow glow-top"></div>
-    <div class="ambient-glow glow-bottom"></div>
+    <!-- خلفية Aurora المتحركة -->
+    <div class="aurora">
+        <div class="aurora-blob aurora-1"></div>
+        <div class="aurora-blob aurora-2"></div>
+        <div class="aurora-blob aurora-3"></div>
+    </div>
     <div class="noise-overlay"></div>
 
     <div class="app">
@@ -65,14 +66,19 @@ def build_index():
             </div>
             <div class="header-actions">
                 <button class="icon-btn" onclick="toggleSettings()" id="btnSettings"><i class="fas fa-sliders"></i></button>
+                <button class="icon-btn" onclick="clearAll()" title="مسح المعرض"><i class="fas fa-trash"></i></button>
             </div>
         </header>
 
-        <!-- منطقة العرض الرئيسية -->
+        <!-- معاينة الصورة -->
         <section class="hero-preview glass-card" id="previewArea">
             <div class="empty-forge" id="emptyState">
                 <i class="fas fa-wand-magic-sparkles"></i>
                 <p>اكتب وصفاً في الأسفل لتبدأ</p>
+            </div>
+            <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+                <div class="spinner"></div>
+                <p>جاري التوليد...</p>
             </div>
             <img class="generated-img" id="generatedImg" alt="">
             <div class="img-overlay" id="imgOverlay" style="display:none;">
@@ -81,14 +87,17 @@ def build_index():
             </div>
         </section>
 
-        <!-- شريط الحالة -->
-        <div class="status-bar" id="statusBar">
-            <span id="statusText">جاهز</span>
-        </div>
-
         <!-- حقل الإدخال -->
-        <section class="prompt-section">
-            <textarea id="promptInput" class="luxury-textarea" placeholder="اكتب وصف الصورة هنا... (مثال: قطة تشرب قهوة في الفضاء، أسلوب سينمائي)" rows="3"></textarea>
+        <section class="prompt-section glass-card">
+            <textarea id="promptInput" class="luxury-textarea" placeholder="اكتب وصف الصورة هنا... (مثال: قطة تشرب قهوة في الفضاء)" rows="3"></textarea>
+            
+            <div class="style-pills">
+                <button class="style-pill active" data-style="realistic" onclick="selectStyle(this)">📷 واقعي</button>
+                <button class="style-pill" data-style="anime" onclick="selectStyle(this)">🌸 أنمي</button>
+                <button class="style-pill" data-style="cinematic" onclick="selectStyle(this)">🎬 سينمائي</button>
+                <button class="style-pill" data-style="3d" onclick="selectStyle(this)">🧊 3D</button>
+            </div>
+
             <div class="prompt-actions">
                 <select id="aspectRatio" class="luxury-select">
                     <option value="1:1">مربع 1:1</option>
@@ -99,6 +108,15 @@ def build_index():
                     <i class="fas fa-bolt"></i> توليد
                 </button>
             </div>
+        </section>
+
+        <!-- معرض الصور المولدة -->
+        <section class="gallery-section" id="gallerySection" style="display:none;">
+            <div class="section-title">
+                <h3><i class="fas fa-images"></i> معرضك</h3>
+                <span id="galleryCount">0 صورة</span>
+            </div>
+            <div class="image-gallery" id="imageGallery"></div>
         </section>
 
         <!-- لوحة الإعدادات -->
@@ -140,7 +158,7 @@ def build_style():
     --surface: rgba(255, 255, 255, 0.04);
     --border: rgba(255, 255, 255, 0.1);
     --text: #ffffff;
-    --text-dim: #7a7a85;
+    --text-dim: #8b8b9e;
     --gold: #ffd700;
     --gold-glow: rgba(255, 215, 0, 0.3);
     --cyan: #00f0ff;
@@ -162,11 +180,22 @@ body {
     overflow-x: hidden;
 }
 
-.ambient-glow {
-    position: fixed; border-radius: 50%; filter: blur(120px); z-index: 0; pointer-events: none; opacity: 0.4;
+/* خلفية Aurora المتحركة */
+.aurora {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
 }
-.glow-top { width: 300px; height: 300px; background: var(--purple); top: -100px; right: -50px; }
-.glow-bottom { width: 250px; height: 250px; background: var(--cyan); bottom: -50px; left: -50px; }
+.aurora-blob {
+    position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.35;
+    animation: float 20s ease-in-out infinite;
+}
+.aurora-1 { width: 400px; height: 400px; background: var(--purple); top: -150px; right: -100px; }
+.aurora-2 { width: 350px; height: 350px; background: var(--cyan); bottom: -100px; left: -100px; animation-delay: -7s; }
+.aurora-3 { width: 250px; height: 250px; background: var(--gold); top: 40%; left: 30%; animation-delay: -14s; opacity: 0.15; }
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+}
 
 .noise-overlay {
     position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.03;
@@ -184,6 +213,7 @@ body {
     box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
+/* الهيدر */
 .glass-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; margin-bottom: 20px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-icon { font-size: 28px; filter: drop-shadow(0 0 10px var(--gold)); }
@@ -192,7 +222,6 @@ body {
 .header-actions { display: flex; gap: 8px; }
 .icon-btn { width: 42px; height: 42px; border-radius: var(--radius-md); background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); font-size: 16px; cursor: pointer; transition: all 0.3s; }
 .icon-btn:hover { background: rgba(255,255,255,0.1); color: var(--gold); transform: translateY(-2px); }
-.icon-btn.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 0 20px var(--gold-glow); }
 
 /* المعاينة */
 .hero-preview { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; margin-bottom: 16px; border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; }
@@ -207,19 +236,39 @@ body {
 .action-circle { width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border: 1px solid var(--border); color: #fff; font-size: 16px; cursor: pointer; transition: 0.3s; }
 .action-circle:hover { background: var(--gold); color: #000; }
 
-/* شريط الحالة */
-.status-bar { text-align: center; margin-bottom: 12px; }
-.status-bar span { font-size: 11px; color: var(--text-dim); font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: 1px; }
+/* مؤشر التحميل */
+.loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3; gap: 16px; }
+.spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay p { font-size: 14px; color: var(--text-dim); font-weight: 700; }
 
 /* حقل الإدخال */
-.prompt-section { background: var(--surface); backdrop-filter: blur(24px); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.prompt-section { padding: 16px; margin-bottom: 20px; }
 .luxury-textarea { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; color: var(--text); font-family: 'Cairo', sans-serif; font-size: 14px; resize: none; outline: none; transition: 0.3s; margin-bottom: 12px; }
 .luxury-textarea:focus { border-color: var(--cyan); box-shadow: 0 0 15px var(--cyan-glow); }
+
+/* أنماط الصور */
+.style-pills { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.style-pill { padding: 8px 14px; border-radius: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-dim); font-family: 'Cairo', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+.style-pill:hover { color: var(--text); border-color: var(--text); }
+.style-pill.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 0 15px var(--gold-glow); }
+
 .prompt-actions { display: flex; gap: 10px; }
 .luxury-select { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px; color: var(--text); font-family: 'Cairo', sans-serif; font-size: 12px; outline: none; cursor: pointer; }
 .generate-btn { flex: 1.5; padding: 12px; border-radius: var(--radius-md); border: none; background: linear-gradient(135deg, var(--gold), #ffaa00); color: #000; font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 0 20px var(--gold-glow); }
 .generate-btn:hover { transform: translateY(-2px); box-shadow: 0 0 30px var(--gold-glow); }
 .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* المعرض */
+.gallery-section { margin-top: 20px; }
+.section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.section-title h3 { font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.section-title span { font-size: 11px; color: var(--text-dim); }
+.image-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.gallery-item { position: relative; aspect-ratio: 1; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); cursor: pointer; transition: 0.3s; }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+.gallery-item:hover img { transform: scale(1.1); }
+.gallery-item:hover { border-color: var(--gold); box-shadow: 0 0 15px var(--gold-glow); }
 
 /* النوافذ */
 .glass-modal { padding: 20px; margin-top: 20px; animation: modalIn 0.4s ease; }
@@ -246,12 +295,15 @@ body {
 # ═══════════════════════════════════════════════════════════
 
 def build_storage_js():
-    return """const KEYS = { settings: 'pixelforge_settings' };
+    return """const KEYS = { settings: 'pixelforge_settings', gallery: 'pixelforge_gallery' };
 function saveData(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return 1; } catch(e) { return 0; } }
 function loadData(k, d = null) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e) { return d; } }
 
 function saveSettings(s) { return saveData(KEYS.settings, s); }
-function loadSettings() { return loadData(KEYS.settings, { geminiKey: '', geminiModel: '""" + DEFAULT_MODEL + """' }); }"""
+function loadSettings() { return loadData(KEYS.settings, { geminiKey: '', geminiModel: '""" + DEFAULT_MODEL + """' }); }
+
+function saveGallery(g) { return saveData(KEYS.gallery, g); }
+function loadGallery() { return loadData(KEYS.gallery, []); }"""
 
 # ═══════════════════════════════════════════════════════════
 # ⚙️ 4. app.js
@@ -260,11 +312,22 @@ function loadSettings() { return loadData(KEYS.settings, { geminiKey: '', gemini
 def build_app_js():
     return """let settings = { geminiKey: '', geminiModel: '""" + DEFAULT_MODEL + """' };
 let currentImageUrl = null;
+let currentStyle = 'realistic';
+let gallery = [];
+
+const STYLE_PROMPTS = {
+    realistic: 'photorealistic, ultra-detailed, 8k, natural lighting',
+    anime: 'anime style, vibrant colors, Studio Ghibli inspired, detailed illustration',
+    cinematic: 'cinematic composition, dramatic lighting, film grain, 35mm lens, moody',
+    '3d': '3D render, octane, ray tracing, Pixar style, volumetric lighting'
+};
 
 function init() {
     settings = loadSettings();
+    gallery = loadGallery();
     document.getElementById('geminiKey').value = settings.geminiKey || '';
     document.getElementById('geminiModel').value = settings.geminiModel || '""" + DEFAULT_MODEL + """';
+    renderGallery();
 }
 
 function toggleSettings() {
@@ -275,9 +338,17 @@ function toggleSettings() {
 function saveSettings() {
     settings.geminiKey = document.getElementById('geminiKey').value.trim();
     settings.geminiModel = document.getElementById('geminiModel').value.trim() || '""" + DEFAULT_MODEL + """';
-    saveSettings(settings);
+    saveSettingsToStorage(settings);
     showToast('✅ تم الحفظ');
     document.getElementById('settingsPanel').style.display = 'none';
+}
+
+function saveSettingsToStorage(s) { saveSettings(s); }
+
+function selectStyle(el) {
+    document.querySelectorAll('.style-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    currentStyle = el.dataset.style;
 }
 
 function showToast(m) {
@@ -288,10 +359,6 @@ function showToast(m) {
     window._t = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-function setStatus(m) {
-    document.getElementById('statusText').innerText = m;
-}
-
 async function generateImage() {
     const prompt = document.getElementById('promptInput').value.trim();
     if (!prompt) { showToast('⚠️ اكتب وصفاً أولاً'); return; }
@@ -300,24 +367,19 @@ async function generateImage() {
     const btn = document.getElementById('generateBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التوليد...';
-    setStatus('🎨 يتم التوليد...');
-
-    // إخفاء الصورة السابقة
+    
+    document.getElementById('loadingOverlay').style.display = 'flex';
     document.getElementById('previewArea').classList.remove('has-image');
     document.getElementById('imgOverlay').style.display = 'none';
 
     try {
+        const fullPrompt = `${prompt}, ${STYLE_PROMPTS[currentStyle]}`;
         const model = settings.geminiModel;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.geminiKey}`;
         
-        // بناء الطلب (نطلب صورة)
         const body = {
-            contents: [{
-                parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-                responseModalities: ["TEXT", "IMAGE"]
-            }
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
         };
 
         const res = await fetch(url, {
@@ -329,7 +391,6 @@ async function generateImage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error?.message || 'HTTP ' + res.status);
 
-        // البحث عن الصورة في الرد
         const parts = data.candidates?.[0]?.content?.parts || [];
         let imagePart = null;
         for (const part of parts) {
@@ -340,30 +401,60 @@ async function generateImage() {
         }
 
         if (!imagePart) {
-            // ربما أعاد نصاً فقط
             const textPart = parts.find(p => p.text);
-            throw new Error(textPart ? 'لم يتم توليد صورة: ' + textPart.text.substring(0, 100) : 'لم يتم استلام صورة');
+            throw new Error(textPart ? 'لم يتم توليد صورة: ' + textPart.text.substring(0, 80) : 'لم يتم استلام صورة');
         }
 
-        // تحويل Base64 إلى صورة
-        const base64 = imagePart.data;
-        const mime = imagePart.mimeType;
-        currentImageUrl = `data:${mime};base64,${base64}`;
-        
+        currentImageUrl = `data:${imagePart.mimeType};base64,${imagePart.data}`;
         document.getElementById('generatedImg').src = currentImageUrl;
         document.getElementById('previewArea').classList.add('has-image');
         document.getElementById('imgOverlay').style.display = 'flex';
-        setStatus('✅ تم التوليد بنجاح');
+        document.getElementById('loadingOverlay').style.display = 'none';
+        
+        // إضافة للمعرض
+        gallery.unshift({ url: currentImageUrl, prompt: prompt, style: currentStyle, at: Date.now() });
+        if (gallery.length > 30) gallery = gallery.slice(0, 30);
+        saveGallery(gallery);
+        renderGallery();
+        
         showToast('🎨 تم توليد الصورة!');
 
     } catch(e) {
         console.error(e);
-        setStatus('❌ فشل التوليد');
+        document.getElementById('loadingOverlay').style.display = 'none';
         showToast('❌ ' + e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-bolt"></i> توليد';
     }
+}
+
+function renderGallery() {
+    const section = document.getElementById('gallerySection');
+    const container = document.getElementById('imageGallery');
+    const count = document.getElementById('galleryCount');
+    
+    if (gallery.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    section.style.display = 'block';
+    count.innerText = gallery.length + ' صورة';
+    container.innerHTML = gallery.map((g, i) => `
+        <div class="gallery-item" onclick="loadFromGallery(${i})">
+            <img src="${g.url}" alt="${g.prompt}">
+        </div>
+    `).join('');
+}
+
+function loadFromGallery(i) {
+    const g = gallery[i];
+    currentImageUrl = g.url;
+    document.getElementById('generatedImg').src = g.url;
+    document.getElementById('previewArea').classList.add('has-image');
+    document.getElementById('imgOverlay').style.display = 'flex';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function downloadImage() {
@@ -377,7 +468,6 @@ function downloadImage() {
 
 function shareImage() {
     if (!currentImageUrl) return;
-    // تحويل base64 إلى ملف للمشاركة
     fetch(currentImageUrl).then(r => r.blob()).then(blob => {
         const file = new File([blob], 'pixelforge.png', { type: blob.type });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -386,6 +476,16 @@ function shareImage() {
             showToast('⚠️ جهازك لا يدعم المشاركة');
         }
     });
+}
+
+function clearAll() {
+    if (!confirm('مسح كل الصور من المعرض؟')) return;
+    gallery = [];
+    saveGallery(gallery);
+    renderGallery();
+    document.getElementById('previewArea').classList.remove('has-image');
+    document.getElementById('imgOverlay').style.display = 'none';
+    showToast('🗑️ تم مسح المعرض');
 }
 
 window.addEventListener('DOMContentLoaded', init);"""
@@ -397,11 +497,11 @@ window.addEventListener('DOMContentLoaded', init);"""
 def main():
     print(f"""
 ╔══════════════════════════════════════════════════════════╗
-║  🎨  PIXEL FORGE 2044 - AI IMAGE GENERATOR  🎨         ║
+║  🎨  PIXEL FORGE 2044 - ULTIMATE  🎨                   ║
 ║     Model: {DEFAULT_MODEL:<46}║
 ╚══════════════════════════════════════════════════════════╝
     """)
-    section("BUILDING PIXEL FORGE")
+    section("BUILDING PIXEL FORGE ULTIMATE")
 
     write("index.html", build_index())
     write("style.css", build_style())
@@ -411,28 +511,22 @@ def main():
     print(f"""
 {'='*60}
   ✅ BUILD COMPLETE! - {TOTAL_LINES} سطر
-  📁 4 ملفات فقط (خفيف جداً)
+  📁 4 ملفات فقط
 
-  🎨 الميزات:
-     ✅ توليد صور من النص (Text-to-Image)
-     ✅ معاينة مباشرة
-     ✅ تحميل الصورة
-     ✅ مشاركة الصورة
-     ✅ اختيار الأبعاد (1:1, 16:9, 9:16)
-     ✅ تصميم فخم
-     ✅ المفتاح يبقى في المتصفح (localStorage)
-
-  🔑 ملاحظة مهمة:
-     الموديل يستخدم "Nano Banana"
-     (gemini-2.5-flash-image)
-     متاح مجاناً: 500 طلب/يوم
+  ✨ الميزات الجديدة:
+     ✅ خلفية Aurora متحركة (فخمة جداً)
+     ✅ 4 أنماط فنية (واقعي/أنمي/سينمائي/3D)
+     ✅ معرض صور مدمج (يحفظ آخر 30 صورة)
+     ✅ مؤشر تحميل احترافي
+     ✅ زر تحميل ومشاركة
+     ✅ زر مسح المعرض
+     ✅ لا يوجد رفع سحابي (كما طلبت)
 
   🚀 الخطوات:
      1. شغّل السكربت
-     2. ارفع الملفات إلى GitHub
-     3. افتح التطبيق
-     4. اضغط ⚙️ وضع مفتاح Gemini
-     5. اكتب وصفاً واضغط "توليد"
+     2. ارفع الـ 4 ملفات إلى GitHub
+     3. افتح التطبيق → ⚙️ → ضع مفتاح Gemini
+     4. اكتب وصفاً → اختر نمط → اضغط "توليد"
 
   🎨 READY!
 {'='*60}
